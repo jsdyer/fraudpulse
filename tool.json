@@ -19,6 +19,6 @@
   "data_info": {
     "mode": "snapshot",
     "cadence": "Weekly",
-    "detail": "RCMP fraud reports, Statistics Canada police and business cybercrime tables, and CISA exploited-vulnerability data; checked weekly with separate coverage dates."
+    "detail": "RCMP fraud records and newer CAFC summaries, Statistics Canada police and business tables, and CISA exploited-vulnerability data; checked weekly with separate coverage dates."
   }
 }

@@ -67,6 +67,29 @@ def main():
                 exported = Path(download.path()).read_text(encoding="utf-8-sig")
                 assert "date,province,category,method" in exported
                 assert "British Columbia,Investments" in exported
+                page.locator("nav [data-view='summaries']").click()
+                expect(page.locator("#summaryEdition")).to_have_value("2026-h1")
+                expect(page.locator("#dashboard")).to_contain_text("About $351M")
+                expect(page.locator("#province")).to_have_count(0)
+                expect(page.locator("#summaryMetric option")).to_have_count(1)
+                expect(page.locator("#dashboard")).to_contain_text("$37.4M")
+                with page.expect_download() as summary_download:
+                    page.locator("#export").click()
+                summary_csv = Path(summary_download.value.path()).read_text(encoding="utf-8-sig")
+                assert "source_date_modified" in summary_csv and "approximately" in summary_csv
+                assert "prior period quoted in this publication" in summary_csv
+                page.locator("#summaryEdition").select_option("2025")
+                expect(page.locator("#dashboard")).to_contain_text("Over $704M")
+                expect(page.locator("#summaryMetric option")).to_have_count(3)
+                page.locator("#summaryMetric").select_option("reports")
+                page.reload()
+                expect(page.locator("#summaryEdition")).to_have_value("2025")
+                expect(page.locator("#summaryMetric")).to_have_value("reports")
+                page.get_by_role("link", name="Investments", exact=True).click()
+                expect(page.locator("#category")).to_have_value("Investments")
+                expect(page.locator("#province")).to_have_value("")
+                expect(page.locator("#country")).to_have_value("Canada")
+                expect(page.locator("#end")).to_have_value(data["coverageEnd"])
                 page.locator("nav [data-view='police']").click()
                 expect(page.locator("#policeSource")).to_have_value("police-annual")
                 expect(page.locator("#dashboard svg").first).to_be_visible()
@@ -91,7 +114,7 @@ def main():
                 # Mobile layout for every view, with long real source labels.
                 for width in (320, 390, 768):
                     page.set_viewport_size({"width": width, "height": 844})
-                    for view in ("fraud", "police", "business", "threats", "sources"):
+                    for view in ("fraud", "summaries", "police", "business", "threats", "sources"):
                         page.locator(f"nav [data-view='{view}']").click()
                         expect(page.locator("#export")).to_be_enabled()
                         dimensions = page.evaluate("({content:document.documentElement.scrollWidth, viewport:window.innerWidth})")

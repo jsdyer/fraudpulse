@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse, calendar, concurrent.futures, csv, datetime as dt, hashlib, io, json, math, os, re, sys, tempfile, time, urllib.request, zipfile
 from decimal import Decimal
 from pathlib import Path
+from cafc_summaries import load_summaries
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / 'web' / 'data'
@@ -230,6 +231,10 @@ def run(cache, offline=False):
   delayed='changeover' in warning.lower() or 'not yet ready' in warning.lower()
   sources.append({'id':'cafc','title':'Canadian Anti-Fraud Centre public fraud reports','publisher':'Royal Canadian Mounted Police / CAFC','url':CAFC_PAGE,'downloadUrl':resource['url'],'definitionsUrl':CAFC_DEFINITIONS,'license':'Open Government Licence – Canada','checkedAt':checked,'publishedAt':(resource.get('last_modified') or resource.get('created') or '')[:10],'catalogModifiedAt':package.get('metadata_modified',''),'coverageStart':cafc['coverageStart'],'coverageEnd':cafc['coverageEnd'],'recordDateStart':cafc['recordDateStart'],'recordDateEnd':cafc['recordDateEnd'],'coverageBasis':cafc['coverageBasis'],'status':'stale' if delayed else 'ok','recordCount':len(cafc['rows']),'canadaRecordCount':cafc['totals']['canada']['reports'],'sha256':hashlib.sha256(raw).hexdigest(),'note':'The publisher says the Q4 2025 update is delayed by a system changeover. Checking weekly does not create newer reports.' if delayed else 'Coverage describes report receipt dates in the published extract; latest check is not a new observation.'})
  except Exception as exc:errors.append({'source':'cafc','error':str(exc)})
+ try:
+  summaries,summary_sources=load_summaries(cache,offline,checked,fetch)
+  sources.extend(summary_sources)
+ except Exception as exc:errors.append({'source':'cafc-summaries','error':str(exc)})
  with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
   futures={pool.submit(table_load,entry,cache,offline,checked):entry for entry in TABLES}
   for future in concurrent.futures.as_completed(futures):
@@ -257,10 +262,11 @@ def run(cache, offline=False):
   prev=next((s for s in old.get('sources',[]) if s['id']==source['id']),{})
   if any(prev.get(k)!=source.get(k) for k in ['sha256','coverageStart','coverageEnd','publishedAt','status']):
    changes.append({'source':source['id'],'previousCount':prev.get('recordCount'),'recordCount':source.get('recordCount'),'previousCoverageEnd':prev.get('coverageEnd'),'coverageEnd':source.get('coverageEnd'),'previousHash':prev.get('sha256'),'sha256':source.get('sha256')})
- manifest={'schemaVersion':SCHEMA,'checkedAt':checked,'generatedAt':attempted,'offlineRebuild':offline,'sources':sources,'files':{name:f'data/{name}.json' for name in ['cafc','police','business','threats']},'notes':['These sources measure different populations and must not be added together.','Source release dates, observation coverage and our download/check dates are distinct.'],'qualityFlags':FLAGS}
+ manifest={'schemaVersion':SCHEMA,'checkedAt':checked,'generatedAt':attempted,'offlineRebuild':offline,'sources':sources,'files':{name:f'data/{name}.json' for name in ['cafc','summaries','police','business','threats']},'notes':['These sources measure different populations and must not be added together.','Source release dates, observation coverage and our download/check dates are distinct.'],'qualityFlags':FLAGS}
  history_path=DATA/'refresh-history.json';history=json.loads(history_path.read_text()) if history_path.exists() else {'schemaVersion':SCHEMA,'runs':[]}
  history['runs'].insert(0,{'checkedAt':checked,'generatedAt':attempted,'offlineRebuild':offline,'success':True,'changedSources':len(changes),'changes':changes});history['runs']=history['runs'][:60]
  payloads={'cafc.json':cafc,'police.json':{'schemaVersion':SCHEMA,'rows':police,'notes':{k:v for k,v in notes.items() if k.startswith('police-')},'qualityFlags':FLAGS},'business.json':{'schemaVersion':SCHEMA,'rows':business,'notes':{k:v for k,v in notes.items() if k.startswith('business-')},'qualityFlags':FLAGS},'manifest.json':manifest,'refresh-history.json':history,'refresh-status.json':{'schemaVersion':SCHEMA,'checkedAt':checked,'attemptedAt':attempted,'offlineRebuild':offline,'success':True,'errors':[],'changedSources':len(changes)}}
+ payloads['summaries.json']=summaries
  # Serialize and validate every output before publishing any files.
  for name,payload in payloads.items():json.dumps(payload,allow_nan=False)
  for name,payload in payloads.items():dump_json(DATA/name,payload)

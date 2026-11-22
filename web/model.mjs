@@ -1,6 +1,6 @@
 // Pure transforms. Source populations remain separate; totals are never combined.
-export const VIEWS = ['fraud', 'police', 'business', 'threats', 'sources'];
-export const DEFAULTS = {view:'fraud',country:'Canada',province:'',category:'',method:'',complaint:'',age:'',start:'',end:'',interval:'month',metric:'reports',policeSource:'police-annual',geo:'Canada',offence:'Total, all violations',measure:'Incidents',industry:'Private sector',size:'Total, all enterprises',businessSource:'business-incidents',businessMetric:'',query:'',ransomware:'all'};
+export const VIEWS = ['fraud', 'summaries', 'police', 'business', 'threats', 'sources'];
+export const DEFAULTS = {view:'fraud',summaryEdition:'',summaryMetric:'loss',country:'Canada',province:'',category:'',method:'',complaint:'',age:'',start:'',end:'',interval:'month',metric:'reports',policeSource:'police-annual',geo:'Canada',offence:'Total, all violations',measure:'Incidents',industry:'Private sector',size:'Total, all enterprises',businessSource:'business-incidents',businessMetric:'',query:'',ransomware:'all'};
 export function validDate(value) { if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const date=new Date(value+'T00:00:00Z');return Number.isFinite(date.valueOf())&&date.toISOString().slice(0,10)===value; }
 export function stateFromSearch(search) {
   const params = new URLSearchParams(search);
@@ -84,4 +84,19 @@ export function monthlySeasonality(daily,start,end,metric='reports') {
   for(let day=new Date(start+'T00:00:00Z'),last=new Date(end+'T00:00:00Z');day<=last;day.setUTCDate(day.getUTCDate()+1)){const m=months[day.getUTCMonth()];m.days++;m.total+=byDate.get(day.toISOString().slice(0,10))||0;}
   for(const month of months)if(month.days)month.average=month.total/month.days;
   return months;
+}
+
+// Summary publications are separate editions, never appended to report rows.
+export function summaryRows(edition,metric='loss') {
+  return [...edition.categories].sort((a,b)=>a[metric]===null?(b[metric]===null?a.label.localeCompare(b.label):1):b[metric]===null?-1:b[metric]-a[metric]||a.label.localeCompare(b.label));
+}
+export function historicalCategoryState(row) {
+  return {...DEFAULTS,view:'fraud',category:row.reportCategory||''};
+}
+export function summaryExport(edition,source) {
+  const common={publication:edition.label,source_url:source.url,source_date_modified:source.publishedAt,checked_at:source.checkedAt,geography:'Canada',period_start:edition.periodStart,period_end:edition.periodEnd,currency:'CAD'};
+  const headline={...common,record_type:'headline',category:'All fraud — published headline',reports:edition.totals.reports?.value??null,reports_qualifier:edition.totals.reports?.qualifier||'not published',victims:null,loss:edition.totals.loss.value,loss_qualifier:edition.totals.loss.qualifier,report_rank:null,loss_rank:null,related_historical_category:''};
+  const rows=edition.categories.map(r=>({...common,record_type:'selected category',category:r.label,reports:r.reports,reports_qualifier:r.reports===null?'not published':'published count',victims:r.victims,loss:r.loss,loss_qualifier:r.lossQualifier,report_rank:r.reportRank,loss_rank:r.lossRank,related_historical_category:r.reportCategory}));
+  const comparisons=edition.comparisons.map(r=>({...common,period_start:r.periodStart,period_end:r.periodEnd,record_type:'prior period quoted in this publication',category:r.label,reports:null,reports_qualifier:'not published',victims:null,loss:r.loss,loss_qualifier:r.lossQualifier,report_rank:null,loss_rank:null,related_historical_category:''}));
+  return [headline,...rows,...comparisons];
 }
