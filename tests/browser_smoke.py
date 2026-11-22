@@ -89,11 +89,14 @@ def main():
                 expect(page.locator("#export")).to_be_enabled()
                 expect(page.locator("#dashboard")).to_contain_text("Refresh history")
                 # Mobile layout for every view, with long real source labels.
+                for width in (320, 390, 768):
+                    page.set_viewport_size({"width": width, "height": 844})
+                    for view in ("fraud", "police", "business", "threats", "sources"):
+                        page.locator(f"nav [data-view='{view}']").click()
+                        expect(page.locator("#export")).to_be_enabled()
+                        dimensions = page.evaluate("({content:document.documentElement.scrollWidth, viewport:window.innerWidth})")
+                        assert dimensions["content"] <= dimensions["viewport"], (view, width, dimensions)
                 page.set_viewport_size({"width": 390, "height": 844})
-                for view in ("fraud", "police", "business", "threats", "sources"):
-                    page.locator(f"nav [data-view='{view}']").click()
-                    expect(page.locator("#export")).to_be_enabled()
-                    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), view
                 page.locator("nav [data-view='fraud']").click()
                 expect(page.locator("#export")).to_be_enabled()
                 page.screenshot(path=str(screenshots / "mobile.png"), full_page=True)
