@@ -1,16 +1,24 @@
 {
-  "id": "coolcode-tool-template",
-  "title": "CoolCode Tool Starter",
-  "description": "A browser-only example that trims lines and removes exact duplicates.",
+  "id": "fraudpulse",
+  "title": "FraudPulse Canada",
+  "description": "Explore Canadian fraud reports, losses, police-reported cybercrime and business cyber security data.",
   "category": "security",
-  "tags": ["text", "lines", "duplicates"],
-  "icon": "scan-search",
-  "url": "/coolcode-tool-template/",
-  "source": "https://github.com/jsdyer/coolcode-tool-template",
+  "tags": [
+    "fraud",
+    "cybercrime",
+    "Canada",
+    "losses",
+    "police",
+    "open data"
+  ],
+  "icon": "shield-alert",
+  "url": "/fraudpulse/",
+  "source": "https://github.com/jsdyer/fraudpulse",
   "hosting": "project",
   "access": "browser",
   "data_info": {
-    "mode": "local",
-    "detail": "The browser reads the text you paste and compares its lines."
+    "mode": "snapshot",
+    "cadence": "Weekly",
+    "detail": "RCMP fraud reports, Statistics Canada police and business cybercrime tables, and CISA exploited-vulnerability data; checked weekly with separate coverage dates."
   }
 }

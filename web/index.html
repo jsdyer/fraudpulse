@@ -4,31 +4,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="{{DESCRIPTION}}">
+  <meta name="theme-color" content="#10191d">
   <title>{{TITLE}} · CoolCode</title>
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.mjs"></script>
   {{VISIT_COUNTER}}
 </head>
 <body data-tool-id="{{TOOL_ID}}">
-  <a class="skip" href="#main">Skip to content</a>
-  <header><a href="https://coolcode.ca/">← CoolCode.ca</a><a href="{{SOURCE_URL}}">Source &amp; instructions ↗</a></header>
-  <main id="main">
-    <p class="eyebrow">Browser tool starter</p>
-    <h1>{{TITLE}}</h1>
-    <p class="intro">{{DESCRIPTION}}</p>
-    <section aria-labelledby="example-title">
-      <h2 id="example-title">Clean a list</h2>
-      <p>Trim spaces, skip blank lines and remove exact duplicates. Capitalization stays distinct.</p>
-      <div class="panels">
-        <div><label for="input">Your lines</label><textarea id="input" rows="10" maxlength="100000" spellcheck="false" placeholder="Paste one item per line"></textarea></div>
-        <div><label for="output">Cleaned lines</label><textarea id="output" rows="10" readonly spellcheck="false"></textarea></div>
-      </div>
-      <div class="actions"><button id="sample" type="button">Load example</button><button id="clear" type="button">Clear</button><button id="copy" type="button" hidden>Copy result</button></div>
-      <p id="status" role="status" aria-live="polite">Paste a list to begin.</p>
-      <noscript><p>This tool needs JavaScript to process your text. The source is available above.</p></noscript>
-    </section>
-    <aside aria-label="Privacy"><strong>Stays on your device.</strong> The browser processes your text in this tab. Reloading clears it.</aside>
-  </main>
-  <footer>Part of <a href="https://coolcode.ca/">the CoolCode collection</a>. {{ISSUE_LINK}}</footer>
+<a class="skip" href="#main">Skip to data explorer</a>
+<div class="shell">
+  <aside class="sidebar" aria-label="FraudPulse navigation">
+    <a class="brand" href="./" aria-label="FraudPulse Canada home"><span class="brand-symbol" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M3 17h6l4-10 6 19 4-9h6"/></svg></span><span>FraudPulse<small>CANADA / OPEN DATA</small></span></a>
+    <div class="nav-label">EXPLORE THE SIGNAL</div>
+    <nav id="navigation" aria-label="Dataset views">
+      <button type="button" data-view="fraud" aria-current="page"><span aria-hidden="true">◷</span>Fraud reports</button>
+      <button type="button" data-view="police"><span aria-hidden="true">▥</span>Police cybercrime</button>
+      <button type="button" data-view="business"><span aria-hidden="true">▦</span>Business cyber security</button>
+      <button type="button" data-view="threats"><span aria-hidden="true">◇</span>Exploited vulnerabilities</button>
+      <button type="button" data-view="sources"><span aria-hidden="true">≡</span>Sources &amp; freshness</button>
+    </nav>
+    <div class="sidebar-note"><span class="small-label">THE BIGGER PICTURE</span><p>Public reports. Police records. Business surveys. Different lenses on a changing problem.</p><a href="https://coolcode.ca/">Explore CoolCode.ca</a></div>
+    <a class="github-link" href="{{SOURCE_URL}}">Open source on GitHub</a>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><span>CANADIAN FRAUD &amp; CYBERCRIME EXPLORER</span><a href="https://coolcode.ca/">A CoolCode tool</a></header>
+    <main id="main">
+      <div class="page-heading"><div><p class="eyebrow" id="view-eyebrow">THE FRAUD REPORTING LANDSCAPE</p><h1 id="view-title">Follow the money.<br><span>Understand the patterns.</span></h1><p id="view-description" class="intro">Explore fraud reports, reported losses and the methods behind them. Built from public Canadian data.</p></div><div class="heading-actions"><button id="share" class="button-secondary" type="button">Copy view link</button><button id="export" class="button-primary" type="button">Export CSV</button></div></div>
+      <p id="app-status" role="status" aria-live="polite" class="status">Loading public data…</p>
+      <div id="coverage" class="coverage" hidden></div>
+      <section id="filters" class="filters" aria-label="Explore filters"></section>
+      <section id="dashboard" aria-label="Selected data"></section>
+      <noscript><p class="notice">JavaScript is needed for interactive charts and filtering. Download the published data and source code from <a href="{{SOURCE_URL}}">GitHub</a>.</p></noscript>
+      <section class="context-strip" aria-label="Reading the data"><div><h2>A report is a starting point.</h2><p>These datasets describe what was reported or surveyed. They do not measure every fraud attempt or every cybercrime in Canada.</p></div><button type="button" data-view="sources" class="text-button">Understand the sources</button></section>
+    </main>
+    <footer><div><strong>{{TITLE}}</strong><span>Independent exploration of public data. Not a government service.</span></div><div><a href="https://antifraudcentre-centreantifraude.ca/report-signalez-eng.htm" target="_blank" rel="noopener noreferrer">Report fraud to the CAFC</a> · {{ISSUE_LINK}}</div><details><summary>Data, privacy &amp; attribution</summary><p>Filtering and CSV exports happen in this browser. The app downloads bundled public datasets; filter choices are included in the page URL for sharing and may appear in hosting logs. No report text, personal information or uploads are collected. CoolCode’s shared counter records aggregate tool opens, excluding URL parameters. Government data retains its original licence and limitations. Source links and snapshot dates appear in Sources &amp; freshness.</p></details></footer>
+  </div>
+</div>
 </body>
 </html>

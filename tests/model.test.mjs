@@ -1,21 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanLines } from '../web/model.mjs';
-test('trims, removes blanks and preserves first-seen order', () => {
-  assert.deepEqual(cleanLines('  Halifax\nLangley\nHalifax\n\nVancouver  '), {
-    text: 'Halifax\nLangley\nVancouver', count: 3, removed: 1,
-  });
-});
-test('supports Windows and old Mac line endings', () => {
-  assert.equal(cleanLines('a\r\nb\ra').text, 'a\nb');
-});
-test('empty text and whitespace produce an empty result', () => {
-  assert.deepEqual(cleanLines(' \n\t'), { text: '', count: 0, removed: 0 });
-});
-test('preserves case and Unicode', () => {
-  assert.equal(cleanLines('Québec\nquébec\n東京\nQuébec').text, 'Québec\nquébec\n東京');
-});
-test('treats markup as ordinary text', () => {
-  assert.equal(cleanLines('<script>alert(1)</script>\n<script>alert(1)</script>').text, '<script>alert(1)</script>');
-});
-test('rejects non-text input', () => { assert.throws(() => cleanLines(null), TypeError); });
+import {DEFAULTS,validDate,stateFromSearch,searchFromState,periodKey,cafcSummary,decodedCafcRows,policeSeries,businessSeries,threatRecords,csv,completePeriods,completeWeekComparison,monthlySeasonality} from '../web/model.mjs';
+const data={columns:['date','province','category','method','complaint','age','country','victims','loss'],dictionaries:{province:['Ontario','British Columbia'],category:['Investments','Phishing'],method:['Email','Direct call'],complaint:['Victim','Attempt'],age:['30 - 39'],country:['Canada','United States']},rows:[['2025-01-01',0,0,0,0,0,0,1,100],['2025-01-02',1,1,1,1,0,0,0,0],['2025-01-06',1,0,0,0,0,0,1,900],['2025-02-01',0,0,0,0,0,1,1,10000]]};
+test('Canadian default excludes other countries and counts records separately from victims',()=>{const result=cafcSummary(data,DEFAULTS);assert.equal(result.reports,3);assert.equal(result.victims,2);assert.equal(result.loss,1000);assert.equal(result.median,500);assert.equal(result.p90,820);assert.equal(result.bins[0].reports,1);assert.equal(result.categories[0].key,'Investments');});
+test('all dimensions and inclusive dates filter before aggregation',()=>{const result=cafcSummary(data,{...DEFAULTS,province:'British Columbia',category:'Investments',method:'Email',complaint:'Victim',age:'30 - 39',start:'2025-01-06',end:'2025-01-06'});assert.equal(result.reports,1);assert.equal(result.loss,900);assert.equal(cafcSummary(data,{...DEFAULTS,category:'Unknown category'}).reports,0);assert.equal(cafcSummary(data,{...DEFAULTS,start:'2025-02-01',end:'2025-01-01'}).reports,0);});
+test('loss ranking and report ranking use selected metric',()=>{const all=cafcSummary(data,{country:'',metric:'loss'});assert.equal(all.loss,11000);assert.equal(all.categories[0].loss,11000);});
+test('weekly buckets use UTC Mondays and handle year boundaries',()=>{assert.equal(periodKey('2025-01-01','week'),'2024-12-30');assert.equal(periodKey('2025-01-05','week'),'2024-12-30');assert.equal(periodKey('2025-01-06','week'),'2025-01-06');});
+test('published empty periods are filled and inverse ranges stay empty',()=>{const rows=completePeriods([{key:'2025-02',reports:5,victims:2,loss:20}],'month','2025-01-01','2025-03-31');assert.deepEqual(rows.map(r=>r.reports),[0,5,0]);assert.deepEqual(completePeriods([],'month','2026-01-01','2025-01-01'),[]);});
+test('zero-loss records do not become positive-loss median; empty median is missing',()=>{const r=cafcSummary(data,{...DEFAULTS,category:'Phishing'});assert.equal(r.median,null);assert.equal(r.maximum,null);assert.equal(r.loss,0);});
+test('query state roundtrips, rejects invalid calendar dates and unknown views',()=>{const s=stateFromSearch('?view=police&geo=British+Columbia&start=2025-02-30&end=2025-99-99');assert.equal(s.view,'police');assert.equal(s.geo,'British Columbia');assert.equal(s.start,'');assert.equal(s.end,'');assert.equal(stateFromSearch('?view=evil&interval=evil').view,'fraud');assert.equal(validDate('2024-02-29'),true);assert.equal(validDate('2025-02-29'),false);assert.equal(stateFromSearch(searchFromState(s)).geo,s.geo);});
+test('police selection never sums quarterly, annual, YTD, geography or offence totals',()=>{const base={source:'police-quarterly',period:'2025-Q1',geo:'Canada',offence:'Total',measure:'Incidents',value:10,status:''};const rows=[base,{...base,measure:'Year to date incidents',value:10},{...base,geo:'Ontario',value:6},{...base,source:'police-annual',period:'2025',value:40},{...base,period:'2025-Q2',value:null,status:'x'}];const result=policeSeries(rows,{policeSource:'police-quarterly',geo:'Canada',offence:'Total',measure:'Incidents'});assert.equal(result.length,2);assert.equal(result[1].value,null);assert.equal(result[1].status,'x');});
+test('business measures preserve denominator, quality flag and missingness',()=>{const r={source:'business-reporting',period:'2025',industry:'Private sector',size:'Total, all enterprises',metric:'Reported to police',unit:'Percent',value:11,status:'E',denominator:'Impacted enterprises'};const result=businessSeries([r,{...r,size:'Small size enterprises',value:8}],{businessSource:r.source,industry:r.industry,size:r.size,businessMetric:r.metric});assert.equal(result.length,1);assert.equal(result[0].denominator,'Impacted enterprises');assert.equal(result[0].status,'E');});
+test('threat filtering requires known ransomware, not inferred unknown',()=>{const rows=[{cve:'CVE-2025-123',vendor:'Acme',product:'Server',ransomware_known:true},{cve:'CVE-2025-456',vendor:'Acme',product:'Router',ransomware_known:false}];assert.equal(threatRecords(rows,{query:'acME',ransomware:'known'}).length,1);assert.equal(threatRecords(rows,{query:'456'}).length,1);});
+test('CSV preserves numeric values, quotes text and neutralizes spreadsheet formula strings',()=>{const result=csv([{name:'  =HYPERLINK("bad")',value:12},{name:'-1+2',value:-2},{name:'a,b\n"quoted"',value:null}]);assert.ok(result.startsWith('\uFEFFname,value'));assert.ok(result.includes("'  =HYPERLINK"));assert.ok(result.includes("'-1+2,-2"));assert.ok(result.includes('"a,b\n""quoted""",'));});
+test('decoded report exports carry labels rather than dictionary positions',()=>{assert.equal(decodedCafcRows(data,[data.rows[0]])[0].country,'Canada');assert.equal(decodedCafcRows(data,[data.rows[0]])[0].loss,100);});
+
+test('week comparison uses only the last two complete Monday–Sunday weeks inside coverage',()=>{const daily=[{key:'2025-01-06',reports:10},{key:'2025-01-12',reports:4},{key:'2025-01-13',reports:21},{key:'2025-01-19',reports:7},{key:'2025-01-20',reports:1000}];const c=completeWeekComparison(daily,'2025-01-01','2025-01-23');assert.equal(c.currentStart,'2025-01-13');assert.equal(c.currentEnd,'2025-01-19');assert.equal(c.previous,14);assert.equal(c.current,28);assert.equal(c.percent,100);assert.equal(completeWeekComparison(daily,'2025-01-07','2025-01-23'),null);assert.equal(completeWeekComparison([],'2025-01-01','2025-01-23').percent,null);});
+test('seasonality averages by covered days including days without published records',()=>{const result=monthlySeasonality([{key:'2025-01-31',reports:20},{key:'2025-02-01',reports:10}],'2025-01-30','2025-02-02');assert.equal(result[0].days,2);assert.equal(result[0].average,10);assert.equal(result[1].days,2);assert.equal(result[1].average,5);assert.equal(result[2].average,null);});

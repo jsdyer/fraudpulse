@@ -1,116 +1,71 @@
-# CoolCode browser tool template
+# FraudPulse Canada
 
-A starting point for independent tools at `coolcode.ca/<repo>/`: a working local-text
-example, responsive UI, Python standard-library build, Node tests, PR checks and Pages
-publication. No npm install is needed.
-
-## Using the example
+A public Canadian fraud and cybercrime explorer for [CoolCode](https://coolcode.ca/), at [coolcode.ca/fraudpulse/](https://coolcode.ca/fraudpulse/). Static HTML, CSS and JavaScript; Python's standard library prepares the official-source snapshots. There are no runtime API keys, database requirements or npm dependencies.
 
 <!-- coolcode:guide -->
-The first occurrence of each trimmed line keeps its place. Compare the output with the original text before copying the result.
+Start with Canadian Anti-Fraud Centre reports and filter by receipt date, province, category or contact method; compare reporting frequency with reported dollar losses. Police incidents, business survey estimates and global exploited vulnerabilities have separate views and denominators. Source-check dates mean that publication was checked, not that new incidents were published; the Sources view records coverage, limitations and snapshot changes.
 <!-- /coolcode:guide -->
 
-For a real tool, replace this paragraph with one or two plain-text sentences
-about an example, a limit or how to interpret the results. Keep the source,
-coverage, refresh behaviour and a worked example in this README as appropriate.
-When updating a tool, revise any details its behaviour has changed and keep the
-homepage's shorter data-source sentence in `tool.json` accurate.
-The hub imports the marked note into the catalogue README.
+## Explore
 
-## One-time template setup
+- **Fraud reports:** daily, weekly and monthly reporting trends; country, province, category and contact-method filters; losses, victims and fraud-category comparisons; calendar patterns and filtered CSV export.
+- **Police cybercrime:** annual counts and published population rates, plus separately labelled preliminary quarterly incidents. Select a geography, offence and measure; do not add parent totals to their component offences or geographic regions.
+- **Business cyber security:** incidence, reporting and cost measures by industry and business size. These are weighted survey estimates with quality flags, not individual police reports.
+- **Exploited vulnerabilities:** search official CISA KEV entries by CVE, vendor, product and known ransomware use. These are global defensive-security context, not Canadian crime totals.
+- **Sources:** original dataset links, coverage periods, download hashes, check dates, limitations and the bounded refresh journal. Related CoolCode tools link to deeper vulnerability analysis and access-to-information exploration.
 
-Enable **Settings → General → Template repository** here. This repository does not
-need Pages enabled: its workflow builds/tests but intentionally skips deployment.
-New copies also skip deployment until `scripts/init.py` sets the tool ID to match
-their repository name. This lets you create the repo before configuring Pages.
+## Sources and interpretation
 
-## Start a new tool
+The [CAFC reporting dataset](https://open.canada.ca/data/en/dataset/6a09c998-cddb-4a22-beff-4dca67ab892f) contains public records received from January 2021 through September 2025 in the initial snapshot. The portal says Q4 2025 is delayed by a reporting-system changeover. Country defaults to Canada; the underlying extract also contains foreign and unspecified-country reports. A record is a report, not a proven criminal incident or a unique person. Reported victims are not deduplicated people. Values are as reported, include missing/unspecified categories and can be revised. Calendar dates refer to report receipt, not necessarily when fraud occurred. No individual URLs, domains, names or narrative complaints are exposed by this tool.
 
-1. Select **Use this template → Create a new repository**, choose owner `jsdyer`,
-   a unique lowercase name such as `my-tool`, and public visibility.
-2. Clone the new repository. Use Python 3.12+ and Node 24+.
-3. Set the identity, using a slug that matches the repository name:
+Loss quantiles describe positive recorded loss per report. A zero recorded loss does not establish absence of harm, especially for identity fraud, phishing or losses absorbed elsewhere.
+
+Statistics Canada tables are ingested separately:
+
+| Table | Subject |
+| --- | --- |
+| [35-10-0002-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3510000201) | Annual police-reported cybercrime, counts and rates |
+| [35-10-0153-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3510015301) | Preliminary quarterly police-reported cybercrime |
+| [35-10-0001-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3510000101) | Annual police-reported cybercrime by violation |
+| [22-10-0076-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2210007601) | Business cyber security incidents |
+| [22-10-0078-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2210007801) | Business reporting of cyber security incidents |
+| [22-10-0131-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2210013101) | Cyber security prevention and detection spending |
+| [22-10-0132-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2210013201) | Recovery spending after cyber security incidents |
+| [22-10-0001-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2210000101) | Business cyber security measures |
+| [22-10-0133-01](https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=2210013301) | Impacts of cyber incidents on businesses |
+
+Use the exact units and dimensions displayed for each table. Population coverage and reporting practices change. Quarterly police figures are preliminary and are not interchangeable with annual final figures. Published suppression and quality flags are retained; unavailable cells are never converted to zero. Business survey estimates describe the survey's in-scope enterprises (generally 10 or more employees), not all Canadian businesses or all victims. Crime reports, police incidents, victims, percentages and dollars are never added together.
+
+The [CISA Known Exploited Vulnerabilities catalogue](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) provides international vulnerability context. A listing indicates exploitation in the wild; it is not evidence that a particular Canadian organisation was compromised. CISA due dates apply to the relevant US federal directive, not a Canadian legal deadline. A value other than “Known” does not establish absence of ransomware use.
+
+Detailed source and pipeline notes live in [`docs/`](docs/). Government datasets remain subject to their source licences: [Open Government Licence – Canada](https://open.canada.ca/en/open-government-licence-canada) and the [Statistics Canada Open Licence](https://www.statcan.gc.ca/en/reference/licence). FraudPulse is an independent tool and is not endorsed by the source organisations.
+
+## Refresh and deployment
 
 ```sh
-python3 scripts/init.py my-tool --title "My Tool" --description "Describe what this tool does."
-```
-
-Review the category, tags and icon in `tool.json`. `access: "browser"` tells the main
-catalogue that the tool works immediately without installation. `--owner` supports a different
-GitHub owner, but only projects owned by `jsdyer` inherit the CoolCode domain.
-
-4. Replace the example in `web/` and its tests. Update the privacy explanation,
-   source attribution and README to describe the real tool.
-5. Test and preview:
-
-```sh
+python3 scripts/refresh_threats.py
+python3 scripts/refresh_data.py
 node --test tests/*.test.mjs
 python3 -m unittest discover -s tests -v
 python3 scripts/build.py
-python3 -m http.server 8000 --directory dist
 ```
 
-Open `http://localhost:8000/`. The example trims lines, skips blanks and removes exact
-duplicates, preserving first-seen order and capitalization. It processes the text in tab memory. Update that explanation if your app behaves differently.
+`scripts/refresh_data.py --cache-dir /path/to/cache` changes the download cache location. Committed snapshots make the ordinary build offline and reproducible. The default `.cache/` directory and generated `dist/` are ignored.
 
-CI also tests the browser flow and mobile layout at a project subpath. Replace the
-sample assertions in `tests/browser_smoke.py` when implementing your own UI. To run
-that check locally (optional for ordinary preview):
+**FraudPulse · Refresh official data** checks the sources each Monday at 13:23 UTC and can also be run manually. New source content is validated before replacing the previous snapshot; check dates and change summaries are recorded even when published content is unchanged. Failed required-source downloads or validation leave the previous good data in place and fail the job. Diagnostics are attached to the Actions run. After successful validation, the workflow commits the data and explicitly starts the Pages workflow, since commits made with `GITHUB_TOKEN` do not trigger an ordinary push workflow.
 
-```sh
-python3 -m venv .venv
-. .venv/bin/activate
-python3 -m pip install -r tests/browser-requirements.txt
-python3 -m playwright install --with-deps chromium
-python3 tests/browser_smoke.py
-```
+**Browser tool · Check and publish** runs model tests, Python tests, an offline build and a Chromium browser check at a project subpath. Pull requests only check and package a preview. Successful `main` builds publish `dist/` through GitHub Pages. Configure the repository's **Settings → Pages → Source** as **GitHub Actions**; do not set a CNAME on this repository. The account site supplies the CoolCode domain.
 
-Playwright is a test-only dependency; the app and its static build do not use it.
+The CoolCode catalogue registers discovery, search, sitemap, issue reporting, GitHub workflow history and source metadata monitoring. Its six-hour metadata check is separate from this tool's weekly source download. The shared Cloudflare collector must include `fraudpulse` in its accepted tool IDs for aggregate opens and private issue reports.
 
-## Publish and register
+Public-repository GitHub schedules may be disabled after 60 days without repository activity. Workflow history is the authoritative record of refresh/deployment failures; a source's latest published period can lag well behind a successful download check.
 
-When the actual tool is ready, in the **new tool repository** set **Settings → Pages → Build and deployment →
-Source → GitHub Actions**. Push to `main`, or manually run **Browser tool · Check and
-publish** after enabling Pages. If the initial deployment ran before Pages was enabled,
-enable it and rerun. PRs only check/build and provide a downloadable preview artifact.
+## Privacy
 
-Keep `{{VISIT_COUNTER}}` in the page head and `{{ISSUE_LINK}}` in the footer when replacing the starter UI. The build enables these for initialized CoolCode repositories. The shared counter records aggregate opens on coolcode.ca by public tool ID. Toolbox inputs and URL parameters are excluded. The issue link opens a reporting form with the tool already selected.
+All filters, chart calculations and CSV exports run in the browser against the bundled public snapshots. The tool does not request uploads, store visitor input or send filter selections to an analysis service. A share link includes its visible filter parameters in the URL, so they are shared with anyone receiving that link and with ordinary hosting requests. CoolCode's existing aggregate page-open counter receives the public tool ID; it excludes chart inputs and URL parameters. Source and related-tool links open the respective external sites.
 
-Keep app-owned asset paths and module imports relative. Check `https://coolcode.ca/my-tool/`.
-Do not add a CNAME or set `coolcode.ca` as this project's custom domain; the account
-site supplies it. Only successful `main` builds deploy.
+## Development
 
-After verifying the app, copy the reviewed object from `tool.json` into `data/tools.json`
-in [the main site](https://github.com/jsdyer/jsdyer.github.io). Each tool still builds
-independently. Update the hub record when listing metadata changes; the hub is the
-authority for discovery. Ordinary app updates touch only this repository.
+App source is in `web/`, transformation logic is in `web/model.mjs`, collectors are in `scripts/`, and meaningful validation tests are in `tests/`. `tool.json` is the reviewed catalogue record; `scripts/build.py` fills metadata and shared reporting placeholders without fetching anything. Preserve relative paths so the application works at `/fraudpulse/`.
 
-The main site separates **Use in your browser** from **Install yourself**. An app
-that asks for a file is still a browser tool. Standalone Linux packages should start
-in their own repositories with their own build/release workflow, rather than copying
-this browser-only scaffold. Their hub record uses `access: "install"`, links to an
-installation guide, and includes `requirements`.
-
-## Files
-
-| Path | Purpose |
-| --- | --- |
-| `tool.json` | Page metadata and a ready-to-copy catalogue record |
-| `web/` | HTML, responsive CSS, DOM interactions and separate model logic |
-| `scripts/build.py` | Escape metadata and build `web/` into `dist/` |
-| `scripts/init.py` | Set a new project's identity |
-| `tests/` | Application and builder tests |
-| `.github/workflows/pages.yml` | Check PRs and publish successful main builds |
-| `AGENTS.md` | Instructions for future coding work |
-
-Namespace optional storage as `coolcode:<tool-id>:<key>`; CoolCode paths share a
-browser origin. Don't save pasted text/uploads by default. Document external APIs
-and send only the information needed for the selected action. Never embed secrets.
-
-Scheduled refresh is opt-in. Validate source data before deploying, display its date,
-and preserve the last good deployment on failure. Public-repository schedules can
-stop after 60 days without repository activity.
-
-Templates don't propagate future edits automatically. Adopt fixes explicitly and
-consider a versioned reusable workflow once several tools confirm the shared process.
-Choose and add the intended software license before distributing a new project.
+The browser check is a CI-only test dependency (`tests/browser-requirements.txt`), not an application dependency. It exercises loaded real snapshots, filters, tabs, exports and a mobile viewport. A preview should serve the built `dist/` directory.

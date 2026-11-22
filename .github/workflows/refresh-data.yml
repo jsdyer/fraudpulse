@@ -1,0 +1,85 @@
+name: FraudPulse · Refresh official data
+on:
+  schedule:
+    - cron: '23 13 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fraudpulse-data-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Clear previous attempt diagnostics
+        run: python3 -c "from pathlib import Path; Path('web/data/refresh-status.json').unlink(missing_ok=True)"
+      - name: Retrieve known exploited vulnerabilities
+        id: threats
+        run: python3 scripts/refresh_threats.py
+      - name: Retrieve and validate Canadian statistics
+        id: canadian
+        run: python3 scripts/refresh_data.py
+      - name: Test and build the candidate snapshot
+        run: |
+          node --test tests/*.test.mjs
+          python3 -m unittest discover -s tests -v
+          python3 scripts/build.py
+      - name: Commit validated source snapshots
+        id: commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web/data
+          if git diff --cached --quiet; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            git commit -m 'Refresh official fraud and cybercrime snapshots'
+            git push
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build and publish the committed snapshot
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
+      - name: Save refresh diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fraudpulse-refresh-status
+          path: |
+            web/data/refresh-status.json
+            web/data/manifest.json
+            web/data/refresh-history.json
+          retention-days: 30
+      - name: Summarize snapshot check
+        if: always()
+        env:
+          THREAT_RESULT: ${{ steps.threats.outcome }}
+          CANADIAN_RESULT: ${{ steps.canadian.outcome }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write('## FraudPulse official-source refresh\n\n')
+              out.write('Current attempt: threat download **' + os.environ['THREAT_RESULT'] + '**; Canadian data **' + os.environ['CANADIAN_RESULT'] + '**.\n\n')
+              path = Path('web/data/refresh-status.json')
+              if path.exists():
+                  out.write('```json\n' + json.dumps(json.loads(path.read_text()), indent=2) + '\n```\n')
+              else:
+                  out.write('This attempt stopped before Canadian refresh diagnostics were written. The attached manifest describes the retained snapshot.\n')
+              out.write('\nOnly validated snapshots are committed. See all job steps for download, validation, commit and deployment-dispatch results.\n')
+          PY
