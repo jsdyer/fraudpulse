@@ -74,3 +74,11 @@ All filters, chart calculations and CSV exports run in the browser against the b
 App source is in `web/`, transformation logic is in `web/model.mjs`, collectors are in `scripts/`, and meaningful validation tests are in `tests/`. `tool.json` is the reviewed catalogue record; `scripts/build.py` fills metadata and shared reporting placeholders without fetching anything. Preserve relative paths so the application works at `/fraudpulse/`.
 
 The browser check is a CI-only test dependency (`tests/browser-requirements.txt`), not an application dependency. It exercises loaded real snapshots, filters, tabs, exports and a mobile viewport. A preview should serve the built `dist/` directory.
+
+<!-- schedule-reliability -->
+## Schedule reliability
+
+Public GitHub repositories can have scheduled workflows disabled after 60 days of inactivity. A separate weekly [schedule guard](.github/workflows/schedule-guard.yml) calls GitHub's enable-workflow API for an explicit list of refresh workflows and itself. It can restore workflows disabled for inactivity, preserves manually disabled workflows, and runs independently of collection failures.
+
+This is an interim mitigation, not a scheduling guarantee: GitHub does not document active-workflow renewal as a permanent exemption, and scheduled runs can be delayed or dropped. A scheduler on our own Linux server is the planned independent trigger. The guard does not collect data, create dummy commits, or change source/check timestamps; successful collection and published data freshness still need monitoring.
+<!-- /schedule-reliability -->
